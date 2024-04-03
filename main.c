@@ -1,5 +1,6 @@
 #include <stdint.h>  // Include this header for using uint16_t type
 #include <stdlib.h>  // Include the standard library for rand()
+#include "images.h"  // Include the header file for the image arrays
 
 volatile int pixel_buffer_start;  // global variable
 short int Buffer1[240][512];      // 240 rows, 512 (320 + padding) columns
@@ -40,7 +41,7 @@ struct color colors = {
 };
 
 void swap(int *a, int *b);
-void clear_screen();
+void draw_level_1();
 void draw_box(int x, int y, int short line_color);
 void wait_for_vsync();
 void plot_pixel(int x, int y, short int line_color);
@@ -176,14 +177,14 @@ void drawSuperMarioBackground() {
     drawCloud(30, 10);
     drawCloud(200, 30);
     drawCloud(100, 50);
-	drawCloud(75, 15);
-	drawCloud(190, 50);
-	drawCloud(120, 30);
-	drawCloud(60, 20);
-	drawCloud(250, 40);
-	drawCloud(150, 60);
-	
-	drawBigCloud(40, 20);
+    drawCloud(75, 15);
+    drawCloud(190, 50);
+    drawCloud(120, 30);
+    drawCloud(60, 20);
+    drawCloud(250, 40);
+    drawCloud(150, 60);
+    
+    drawBigCloud(40, 20);
     drawBigCloud(200, 30);
     drawBigCloud(100, 50);
     drawBigCloud(180, 10);
@@ -191,6 +192,8 @@ void drawSuperMarioBackground() {
 }
 
 int main(void) {
+
+  // ********* logic for pixel control and buffer *********
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
 
   /* set front pixel buffer to Buffer 1 */
@@ -200,19 +203,37 @@ int main(void) {
   wait_for_vsync();
   /* initialize a pointer to the pixel buffer, used by drawing functions */
   pixel_buffer_start = *pixel_ctrl_ptr;
-  clear_screen();  // pixel_buffer_start points to the pixel buffer
+  draw_level_1();  // pixel_buffer_start points to the pixel buffer
 
   /* set back pixel buffer to Buffer 2 */
   *(pixel_ctrl_ptr + 1) = (int)&Buffer2;
   pixel_buffer_start = *(pixel_ctrl_ptr + 1);  // we draw on the back buffer
-  clear_screen();  // pixel_buffer_start points to the pixel buffer
+  draw_level_1();  // pixel_buffer_start points to the pixel buffer
+  // ********* logic for pixel control and buffer *********
 
   while (1) {
-    /* Erase any boxes and lines that were drawn in the last iteration */
-    clear_screen();
-	  
-	drawSuperMarioBackground();
+    // draw the background again in order to erase previous stuff
+    draw_level_1();
+
+    // for (int y = 0; y < 40; y++) {
+    //     for (int x = 0; x < 40; x++) {
+    //         int index = y * 40 + x;
+		// 	if (Iftikher_still[index] != 0xFFFF) {
+    //         	plot_pixel(x, y+175, Iftikher_still[index]);
+		// 	}
+    //     }
+    // }
+  
+    // for (int y = 0; y < 40; y++) {
+    //     for (int x = 0; x < 40; x++) {
+    //         int index = y * 40 + x;
+		// 	if (Iftier_jump_left[index] != 0xFFFF) {
+    //         	plot_pixel(x+145, y+130, Iftier_jump_left[index]);
+		// 	}
+    //     }
+    // }
     
+    // waiting stage for buffer swapping
     wait_for_vsync();  // swap front and back buffers on VGA vertical sync
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);  // new back buffer
   }
@@ -224,10 +245,11 @@ void swap(int *a, int *b) {
   *b = temp;
 }
 
-void clear_screen() {
+void draw_level_1() {
   for (int y = 0; y < 240; y++) {
     for (int x = 0; x < 320; x++) {
-      plot_pixel(x, y, 0x0000);  // Black color
+        int index = y * 320 + x;
+        plot_pixel(x, y, Level1[index]);
     }
   }
 }
