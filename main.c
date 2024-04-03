@@ -12,7 +12,8 @@ int player_speed = 5;
 bool is_running_right = false;
 bool is_running_left = false;
 bool face_left = false;
-bool face_right = true;
+bool face_right = true; // start facing right by default
+bool is_jumping = false;
 
 // Define the struct for colors
 struct color {
@@ -59,10 +60,14 @@ void draw_iftimario_still_right(int x_offest);
 void draw_iftimario_still_left(int x_offest);
 void draw_iftimario_running_right(x_offset);
 void draw_iftimario_running_left(x_offset);
+void draw_iftimario_jumping_right(x_offset, y_offset);
+void draw_iftimario_jumping_left(x_offset, y_offset);
 
 int main(void) {
   // The x value holder for moving the character
   int x_offset = 0;
+  int y_offset = 0;
+  bool up = true;
 
   // ********* logic for pixel control and buffer *********
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
@@ -122,11 +127,10 @@ int main(void) {
         // A = move to the left
         is_running_left = true;
         if (x_offset > -15) x_offset -= player_speed;
-      } /* else if (byte1 == 0x1D) {
-              // W = jump
-              *led_ctrl_ptr = 0x3;
-      } */
-
+      } else if (byte1 == 0x1D) {
+        // W = jump
+        is_jumping = true;
+      } 
     } else {
       if (is_running_right) {
         face_right = true;
@@ -140,15 +144,45 @@ int main(void) {
     }
     // ********* end of logic for PS/2 Keyboard *********
 
+    if (is_jumping) {
+      if (up) {
+        y_offset -= 5;
+      } else {
+        y_offset += 5;
+      }
+      if (y_offset == -20) {
+        up = false;
+      } else if (y_offset == 0) {
+        up = true;
+        is_jumping = false;
+      }
+    }
+
     // draw the character
     if (is_running_right) {
-      draw_iftimario_running_right(x_offset);
+      if (is_jumping) {
+        draw_iftimario_jumping_right(x_offset, y_offset);
+      } else {
+        draw_iftimario_running_right(x_offset);
+      }
     } else if (is_running_left) {
-      draw_iftimario_running_left(x_offset);
+      if (is_jumping) {
+        draw_iftimario_jumping_left(x_offset, y_offset);
+      } else {
+        draw_iftimario_running_left(x_offset);
+      }
     } else if (face_left) {
-      draw_iftimario_still_left(x_offset);
-    } else {
-      draw_iftimario_still_right(x_offset);
+      if (is_jumping) {
+        draw_iftimario_jumping_left(x_offset, y_offset);
+      } else {
+        draw_iftimario_still_left(x_offset);
+      }
+    } else if (face_right) {
+      if (is_jumping) {
+        draw_iftimario_jumping_right(x_offset, y_offset);
+      } else {
+        draw_iftimario_still_right(x_offset);
+      }
     }
     // waiting stage for buffer swapping
     wait_for_vsync();  // swap front and back buffers on VGA vertical sync
@@ -175,7 +209,7 @@ void draw_iftimario_still_right(int x_offest) {
   for (int y = 0; y < 40; y++) {
     for (int x = 0; x < 40; x++) {
       int index = y * 40 + x;
-      if (Iftikher_still[index] != 0xFFFF) {
+      if (Iftikher_still_right[index] != 0xFFFF) {
         plot_pixel(x + x_offest, y + 175, Iftikher_still_right[index]);
       }
     }
@@ -186,7 +220,7 @@ void draw_iftimario_still_left(int x_offest) {
   for (int y = 0; y < 40; y++) {
     for (int x = 0; x < 40; x++) {
       int index = y * 40 + x;
-      if (Iftikher_still[index] != 0xFFFF) {
+      if (Iftikher_still_left[index] != 0xFFFF) {
         plot_pixel(x + x_offest, y + 175, Iftikher_still_left[index]);
       }
     }
@@ -210,6 +244,28 @@ void draw_iftimario_running_left(x_offset) {
       int index = y * 40 + x;
       if (Iftikher_running_left[index] != 0xFFFF) {
         plot_pixel(x + x_offset, y + 175, Iftikher_running_left[index]);
+      }
+    }
+  }
+}
+
+void draw_iftimario_jumping_right(x_offset, y_offset) {
+  for (int y = 0; y < 40; y++) {
+  for (int x = 0; x < 40; x++) {
+    int index = y * 40 + x;
+    if (Iftikher_jump_right[index] != 0xFFFF) {
+      plot_pixel(x + x_offset, y + 175 + y_offset, Iftikher_jump_right[index]);
+      }
+    }
+  }
+}
+
+void draw_iftimario_jumping_left(x_offset, y_offset) {
+  for (int y = 0; y < 40; y++) {
+    for (int x = 0; x < 40; x++) {
+      int index = y * 40 + x;
+      if (Iftikher_jump_left[index] != 0xFFFF) {
+        plot_pixel(x + x_offset, y + 175 + y_offset, Iftikher_jump_left[index]);
       }
     }
   }
