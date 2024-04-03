@@ -1,11 +1,18 @@
-#include <stdint.h>  // Include this header for using uint16_t type
-#include <stdlib.h>  // Include the standard library for rand()
+#include <stdbool.h>  // Include the standard library for boolean values
+#include <stdint.h>   // Include this header for using uint16_t type
+#include <stdlib.h>   // Include the standard library for rand()
 
 #include "images.h"  // Include the header file for the image arrays
 
 volatile int pixel_buffer_start;  // global variable
 short int Buffer1[240][512];      // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
+
+int player_speed = 5;
+bool is_running_right = false;
+bool is_running_left = false;
+bool face_left = false;
+bool face_right = true;
 
 // Define the struct for colors
 struct color {
@@ -48,11 +55,14 @@ void plot_pixel(int x, int y, short int line_color);
 void draw_line(int x0, int y0, int x1, int y1, short int color);
 int abs(int a);
 void draw_level_1();
-void draw_iftimario(int x_offest);
+void draw_iftimario_still_right(int x_offest);
+void draw_iftimario_still_left(int x_offest);
+void draw_iftimario_running_right(x_offset);
+void draw_iftimario_running_left(x_offset);
 
 int main(void) {
   // The x value holder for moving the character
-  int x_offset = 0; 
+  int x_offset = 0;
 
   // ********* logic for pixel control and buffer *********
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
@@ -73,14 +83,14 @@ int main(void) {
   // ********* end of logic for pixel control and buffer *********
 
   // ********* initialization for implementing PS/2 Keyboard *********
-  volatile int * ps2_ctrl_ptr = (int *)0xFF200100;
-  volatile int * led_ctrl_ptr = (int *)0xFF200000;
+  volatile int *ps2_ctrl_ptr = (int *)0xFF200100;
+  volatile int *led_ctrl_ptr = (int *)0xFF200000;
 
-  //Variables to store the data read from the PS/2 input.
+  // Variables to store the data read from the PS/2 input.
   int ps2_data;
   char validRead;
 
-  //The last 3 bytes read (byte1 is the most recent).
+  // The last 3 bytes read (byte1 is the most recent).
   unsigned char byte1, byte2, byte3;
   byte1 = 0;
   byte2 = 0;
@@ -88,41 +98,58 @@ int main(void) {
   // ********* end of initialization for implementing PS/2 Keyboard *********
 
   while (1) {
-
     // draw the background again in order to erase previous stuff
     draw_level_1();
 
     // ********* logic for PS/2 Keyboard *********
-    //Keyboard input processing. Keyboard input is read one byte at a time.
-    //Every time a read is performed of the PS/2 control register, it discards the 
-    //last byte.
+    // Keyboard input processing. Keyboard input is read one byte at a time.
+    // Every time a read is performed of the PS/2 control register, it discards
+    // the last byte.
     ps2_data = *(ps2_ctrl_ptr);
-    validRead = ( (ps2_data & 0x8000) != 0);
+    validRead = ((ps2_data & 0x8000) != 0);
 
-    if (validRead)
-    {
-        //Update the last 3 bytes read to reflect the current read.
-        byte3 = byte2;
-        byte2 = byte1;
-        byte1 = (ps2_data & 0xFF);
+    if (validRead) {
+      // Update the last 3 bytes read to reflect the current read.
+      byte3 = byte2;
+      byte2 = byte1;
+      byte1 = (ps2_data & 0xFF);
 
       if (byte1 == 0x23) {
-				// D = move to the right
-        if (x_offset < 280) x_offset++;
-			} else if (byte1 == 0x1C) {
-				// A = move to the left
-				if (x_offset > 0) x_offset--;
-			} /* else if (byte1 == 0x1D) {
-				// W = jump
-				*led_ctrl_ptr = 0x3;
-			} */
+        // D = move to the right
+        is_running_right = true;
+        if (x_offset < 295) x_offset += player_speed;
+      } else if (byte1 == 0x1C) {
+        // A = move to the left
+        is_running_left = true;
+        if (x_offset > -15) x_offset -= player_speed;
+      } /* else if (byte1 == 0x1D) {
+              // W = jump
+              *led_ctrl_ptr = 0x3;
+      } */
 
+    } else {
+      if (is_running_right) {
+        face_right = true;
+        face_left = false;
+      } else if (is_running_left) {
+        face_left = true;
+        face_right = false;
+      }
+      is_running_right = false;
+      is_running_left = false;
     }
     // ********* end of logic for PS/2 Keyboard *********
 
     // draw the character
-    draw_iftimario(x_offset);
-
+    if (is_running_right) {
+      draw_iftimario_running_right(x_offset);
+    } else if (is_running_left) {
+      draw_iftimario_running_left(x_offset);
+    } else if (face_left) {
+      draw_iftimario_still_left(x_offset);
+    } else {
+      draw_iftimario_still_right(x_offset);
+    }
     // waiting stage for buffer swapping
     wait_for_vsync();  // swap front and back buffers on VGA vertical sync
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);  // new back buffer
@@ -144,12 +171,45 @@ void draw_level_1() {
   }
 }
 
-void draw_iftimario(int x_offest) {
+void draw_iftimario_still_right(int x_offest) {
   for (int y = 0; y < 40; y++) {
     for (int x = 0; x < 40; x++) {
       int index = y * 40 + x;
       if (Iftikher_still[index] != 0xFFFF) {
-        plot_pixel(x + x_offest, y + 175, Iftikher_still[index]);
+        plot_pixel(x + x_offest, y + 175, Iftikher_still_right[index]);
+      }
+    }
+  }
+}
+
+void draw_iftimario_still_left(int x_offest) {
+  for (int y = 0; y < 40; y++) {
+    for (int x = 0; x < 40; x++) {
+      int index = y * 40 + x;
+      if (Iftikher_still[index] != 0xFFFF) {
+        plot_pixel(x + x_offest, y + 175, Iftikher_still_left[index]);
+      }
+    }
+  }
+}
+
+void draw_iftimario_running_right(x_offset) {
+  for (int y = 0; y < 40; y++) {
+    for (int x = 0; x < 40; x++) {
+      int index = y * 40 + x;
+      if (Iftikher_running_right[index] != 0xFFFF) {
+        plot_pixel(x + x_offset, y + 175, Iftikher_running_right[index]);
+      }
+    }
+  }
+}
+
+void draw_iftimario_running_left(x_offset) {
+  for (int y = 0; y < 40; y++) {
+    for (int x = 0; x < 40; x++) {
+      int index = y * 40 + x;
+      if (Iftikher_running_left[index] != 0xFFFF) {
+        plot_pixel(x + x_offset, y + 175, Iftikher_running_left[index]);
       }
     }
   }
