@@ -42,157 +42,18 @@ struct color colors = {
 };
 
 void swap(int *a, int *b);
-void draw_level_1();
 void draw_box(int x, int y, int short line_color);
 void wait_for_vsync();
 void plot_pixel(int x, int y, short int line_color);
 void draw_line(int x0, int y0, int x1, int y1, short int color);
 int abs(int a);
-
-// Function to draw a block
-void drawBlock(int x, int y) {
-  // Draw a block at position (x, y)
-  // For simplicity, let's draw a brown block
-  for (int i = 0; i < 16; i++) {
-    for (int j = 0; j < 16; j++) {
-      plot_pixel(x + i, y + j, 0x88AA);  // Brown color for block
-    }
-  }
-}
-
-// Function to draw a pipe
-void drawPipe(int x, int y) {
-  // Draw a pipe at position (x, y)
-  // For simplicity, let's draw a green pipe
-  for (int i = 0; i < 16; i++) {
-    for (int j = 0; j < 32; j++) {
-      plot_pixel(x + i, y + j, 0x00FF00);  // Green color for pipe
-    }
-  }
-}
-
-// Function to draw a castle
-void drawCastle(int x, int y) {
-  // Draw a castle at position (x, y)
-  // For simplicity, let's draw a gray castle with towers
-
-  // Main castle body
-  for (int i = 0; i < 96; i++) {
-    for (int j = 0; j < 64; j++) {
-      plot_pixel(x + i, y + j, 0x7BEF);  // Gray color for castle
-    }
-  }
-
-  // Draw towers
-  for (int i = 0; i < 20; i++) {
-    for (int j = 0; j < 64; j++) {
-      plot_pixel(x + i + 8, y + j, 0x7BEF);   // Light gray color for towers
-      plot_pixel(x + i + 68, y + j, 0x7BEF);  // Light gray color for towers
-    }
-  }
-
-  // Draw door
-  for (int i = 32; i < 64; i++) {
-    for (int j = 32; j < 64; j++) {
-      plot_pixel(x + i, y + j, 0x0);  // Black color for door
-    }
-  }
-}
-
-void drawCloud(int x, int y) {
-  // Draw a cloud at position (x, y)
-  // For simplicity, let's draw a white cloud
-  // Adjust the position and size for your specific scene
-  plot_pixel(x + 0, y + 0, 0xFFFFFF);  // White color for cloud
-  plot_pixel(x + 1, y + 0, 0xFFFFFF);  // White color for cloud
-  plot_pixel(x + 2, y + 0, 0xFFFFFF);  // White color for cloud
-  plot_pixel(x + 1, y + 1, 0xFFFFFF);  // White color for cloud
-  plot_pixel(x + 3, y + 1, 0xFFFFFF);  // White color for cloud
-  plot_pixel(x + 0, y + 2, 0xFFFFFF);  // White color for cloud
-  plot_pixel(x + 1, y + 2, 0xFFFFFF);  // White color for cloud
-  plot_pixel(x + 2, y + 2, 0xFFFFFF);  // White color for cloud
-  plot_pixel(x + 3, y + 2, 0xFFFFFF);  // White color for cloud
-  plot_pixel(x + 1, y + 3, 0xFFFFFF);  // White color for cloud
-  plot_pixel(x + 2, y + 3, 0xFFFFFF);  // White color for cloud
-}
-
-// Function to draw a cloud
-void drawBigCloud(int x, int y) {
-  // Draw a cloud at position (x, y)
-  // For simplicity, let's draw a white cloud
-  // Adjust the position and size for your specific scene
-  for (int i = 0; i < 20; i++) {
-    for (int j = 0; j < 10; j++) {
-      plot_pixel(x + i, y + j, 0xFFFFFF);  // White color for cloud
-    }
-  }
-  for (int i = 0; i < 16; i++) {
-    for (int j = 0; j < 6; j++) {
-      plot_pixel(x + i + 2, y + j + 4, 0xFFFFFF);  // White color for cloud
-    }
-  }
-  for (int i = 0; i < 14; i++) {
-    for (int j = 0; j < 4; j++) {
-      plot_pixel(x + i + 4, y + j + 8, 0xFFFFFF);  // White color for cloud
-    }
-  }
-}
-
-// Function to draw the Super Mario background
-void drawSuperMarioBackground() {
-  // Draw sky
-  for (int y = 0; y < 160; y++) {
-    for (int x = 0; x < 320; x++) {
-      plot_pixel(x, y, 0x5DBF);  // Sky color (e.g., blue)
-    }
-  }
-
-  // Draw grass
-  for (int y = 160; y < 180; y++) {
-    for (int x = 0; x < 320; x++) {
-      plot_pixel(x, y, 0x663300);  // Green color for grass
-    }
-  }
-
-  // Draw dirt 0x663300
-  for (int y = 180; y < 240; y++) {
-    for (int x = 0; x < 320; x++) {
-      plot_pixel(x, y, 0x00AA00);  // Brown color for dirt
-    }
-  }
-
-  // Draw blocks
-  drawBlock(32, 128);
-  drawBlock(80, 128);
-  drawBlock(224, 128);
-  drawBlock(272, 128);
-
-  // Draw pipes
-  drawPipe(128, 96);
-  drawPipe(240, 96);
-
-  // Draw castle
-  drawCastle(160, 100);
-
-  // Draw clouds
-  drawCloud(30, 10);
-  drawCloud(200, 30);
-  drawCloud(100, 50);
-  drawCloud(75, 15);
-  drawCloud(190, 50);
-  drawCloud(120, 30);
-  drawCloud(60, 20);
-  drawCloud(250, 40);
-  drawCloud(150, 60);
-
-  drawBigCloud(40, 20);
-  drawBigCloud(200, 30);
-  drawBigCloud(100, 50);
-  drawBigCloud(180, 10);
-  drawBigCloud(260, 20);
-}
+void draw_level_1();
+void draw_iftimario(int x_offest);
 
 int main(void) {
+  // The x value holder for moving the character
+  int x_offset = 0; 
+
   // ********* logic for pixel control and buffer *********
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
 
@@ -227,26 +88,40 @@ int main(void) {
   // ********* end of initialization for implementing PS/2 Keyboard *********
 
   while (1) {
+
     // draw the background again in order to erase previous stuff
     draw_level_1();
 
-    // for (int y = 0; y < 40; y++) {
-    //     for (int x = 0; x < 40; x++) {
-    //         int index = y * 40 + x;
-    // 	if (Iftikher_still[index] != 0xFFFF) {
-    //         	plot_pixel(x, y+175, Iftikher_still[index]);
-    // 	}
-    //     }
-    // }
+    // ********* logic for PS/2 Keyboard *********
+    //Keyboard input processing. Keyboard input is read one byte at a time.
+    //Every time a read is performed of the PS/2 control register, it discards the 
+    //last byte.
+    ps2_data = *(ps2_ctrl_ptr);
+    validRead = ( (ps2_data & 0x8000) != 0);
 
-    // for (int y = 0; y < 40; y++) {
-    //     for (int x = 0; x < 40; x++) {
-    //         int index = y * 40 + x;
-    // 	if (Iftier_jump_left[index] != 0xFFFF) {
-    //         	plot_pixel(x+145, y+130, Iftier_jump_left[index]);
-    // 	}
-    //     }
-    // }
+    if (validRead)
+    {
+        //Update the last 3 bytes read to reflect the current read.
+        byte3 = byte2;
+        byte2 = byte1;
+        byte1 = (ps2_data & 0xFF);
+
+      if (byte1 == 0x23) {
+				// D = move to the right
+        if (x_offset < 280) x_offset++;
+			} else if (byte1 == 0x1C) {
+				// A = move to the left
+				if (x_offset > 0) x_offset--;
+			} /* else if (byte1 == 0x1D) {
+				// W = jump
+				*led_ctrl_ptr = 0x3;
+			} */
+
+    }
+    // ********* end of logic for PS/2 Keyboard *********
+
+    // draw the character
+    draw_iftimario(x_offset);
 
     // waiting stage for buffer swapping
     wait_for_vsync();  // swap front and back buffers on VGA vertical sync
@@ -265,6 +140,17 @@ void draw_level_1() {
     for (int x = 0; x < 320; x++) {
       int index = y * 320 + x;
       plot_pixel(x, y, Level1[index]);
+    }
+  }
+}
+
+void draw_iftimario(int x_offest) {
+  for (int y = 0; y < 40; y++) {
+    for (int x = 0; x < 40; x++) {
+      int index = y * 40 + x;
+      if (Iftikher_still[index] != 0xFFFF) {
+        plot_pixel(x + x_offest, y + 175, Iftikher_still[index]);
+      }
     }
   }
 }
