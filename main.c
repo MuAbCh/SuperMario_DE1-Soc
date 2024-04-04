@@ -13,9 +13,16 @@ int platform = 175;
 bool is_running_right = false;
 bool is_running_left = false;
 bool face_left = false;
-bool face_right = true; // start facing right by default
+bool face_right = true;  // start facing right by default
 bool is_jumping = false;
 bool top_of_jump = false;
+bool on_lvl1_pipe = false;
+bool s_clicked = false;
+bool level_1 = true;
+bool level_2 = false;
+bool falling_animation_of_level2 = true;
+bool power_up_picked_up = false;
+bool Iftiluigi = false;
 
 // Define the struct for colors
 struct color {
@@ -58,18 +65,22 @@ void plot_pixel(int x, int y, short int line_color);
 void draw_line(int x0, int y0, int x1, int y1, short int color);
 int abs(int a);
 void draw_level_1();
+void draw_level_2();
 void draw_iftimario_still_right(int x_offest);
 void draw_iftimario_still_left(int x_offest);
 void draw_iftimario_running_right(x_offset);
 void draw_iftimario_running_left(x_offset);
 void draw_iftimario_jumping_right(x_offset, y_offset);
 void draw_iftimario_jumping_left(x_offset, y_offset);
+void draw_transform_power_up();
+void draw_transform_power_up_message();
 
 int main(void) {
   // The x value holder for moving the character
   int x_offset = 0;
   int y_offset = 0;
   bool up = true;
+  bool t_clicked = false;
 
   // ********* logic for pixel control and buffer *********
   volatile int *pixel_ctrl_ptr = (int *)0xFF203020;
@@ -105,103 +116,232 @@ int main(void) {
   // ********* end of initialization for implementing PS/2 Keyboard *********
 
   while (1) {
-    // draw the background again in order to erase previous stuff
-    draw_level_1();
+    // level 1
+    if (level_1) {
+      // draw the background again in order to erase previous stuff
+      draw_level_1();
 
-    // ********* logic for PS/2 Keyboard *********
-    // Keyboard input processing. Keyboard input is read one byte at a time.
-    // Every time a read is performed of the PS/2 control register, it discards
-    // the last byte.
-    ps2_data = *(ps2_ctrl_ptr);
-    validRead = ((ps2_data & 0x8000) != 0);
+      // ********* logic for PS/2 Keyboard *********
+      // Keyboard input processing. Keyboard input is read one byte at a time.
+      // Every time a read is performed of the PS/2 control register, it
+      // discards the last byte.
+      ps2_data = *(ps2_ctrl_ptr);
+      validRead = ((ps2_data & 0x8000) != 0);
 
-    if (validRead) {
-      // Update the last 3 bytes read to reflect the current read.
-      byte3 = byte2;
-      byte2 = byte1;
-      byte1 = (ps2_data & 0xFF);
+      if (validRead) {
+        // Update the last 3 bytes read to reflect the current read.
+        byte3 = byte2;
+        byte2 = byte1;
+        byte1 = (ps2_data & 0xFF);
 
-      if (byte1 == 0x23) {
-        // D = move to the right
-        is_running_right = true;
-        if (x_offset < 295) x_offset += player_speed;
-      } else if (byte1 == 0x1C) {
-        // A = move to the left
-        is_running_left = true;
-        if (x_offset > -15) x_offset -= player_speed;
-      } else if (byte1 == 0x1D) {
-        // W = jump
-        is_jumping = true;
+        if (byte1 == 0x23) {
+          // D = move to the right
+          is_running_right = true;
+          if (x_offset < 295) x_offset += player_speed;
+        } else if (byte1 == 0x1C) {
+          // A = move to the left
+          is_running_left = true;
+          if (x_offset > -15) x_offset -= player_speed;
+        } else if (byte1 == 0x1D) {
+          // W = jump
+          is_jumping = true;
+        } else if (byte1 == 0x1B) {
+          // S = go down pipe
+          s_clicked = true;
+        }
+      } else {
+        if (is_running_right) {
+          face_right = true;
+          face_left = false;
+        } else if (is_running_left) {
+          face_left = true;
+          face_right = false;
+        }
+        is_running_right = false;
+        is_running_left = false;
+        s_clicked = false;
       }
-    } else {
+      // ********* end of logic for PS/2 Keyboard *********
+
+      if (is_jumping) {
+        if (up) {
+          y_offset -= 5;
+        } else {
+          y_offset += 5;
+        }
+        if (y_offset == -40) {
+          up = false;
+          top_of_jump = true;
+        } else if (y_offset == 0) {
+          up = true;
+          is_jumping = false;
+        }
+      }
+
+      // draw the character
       if (is_running_right) {
-        face_right = true;
-        face_left = false;
+        if (is_jumping) {
+          draw_iftimario_jumping_right(x_offset, y_offset);
+        } else {
+          draw_iftimario_running_right(x_offset);
+        }
       } else if (is_running_left) {
-        face_left = true;
-        face_right = false;
+        if (is_jumping) {
+          draw_iftimario_jumping_left(x_offset, y_offset);
+        } else {
+          draw_iftimario_running_left(x_offset);
+        }
+      } else if (face_left) {
+        if (is_jumping) {
+          draw_iftimario_jumping_left(x_offset, y_offset);
+        } else {
+          draw_iftimario_still_left(x_offset);
+        }
+      } else if (face_right) {
+        if (is_jumping) {
+          draw_iftimario_jumping_right(x_offset, y_offset);
+        } else {
+          draw_iftimario_still_right(x_offset);
+        }
       }
-      is_running_right = false;
-      is_running_left = false;
-    }
-    // ********* end of logic for PS/2 Keyboard *********
 
-    if (is_jumping) {
-      if (up) {
-        y_offset -= 5;
-      } else {
-        y_offset += 5;
-      }
-      if (y_offset == -40) {
-        up = false;
-        top_of_jump = true;
-      } else if (y_offset == 0) {
-        up = true;
-        is_jumping = false;
-      }
-    }
-
-    // draw the character
-    if (is_running_right) {
-      if (is_jumping) {
-        draw_iftimario_jumping_right(x_offset, y_offset);
-      } else {
-        draw_iftimario_running_right(x_offset);
-      }
-    } else if (is_running_left) {
-      if (is_jumping) {
-        draw_iftimario_jumping_left(x_offset, y_offset);
-      } else {
-        draw_iftimario_running_left(x_offset);
-      }
-    } else if (face_left) {
-      if (is_jumping) {
-        draw_iftimario_jumping_left(x_offset, y_offset);
-      } else {
-        draw_iftimario_still_left(x_offset);
-      }
-    } else if (face_right) {
-      if (is_jumping) {
-        draw_iftimario_jumping_right(x_offset, y_offset);
-      } else {
-        draw_iftimario_still_right(x_offset);
-      }
-    }
-
-    // logic for collision with block platferm in middle of screen
-    if (x_offset > 102 && x_offset < 162) {
-      if (top_of_jump) {
+      // logic for collision with block platform in middle of screen
+      if (x_offset > 102 && x_offset < 162) {
+        if (top_of_jump) {
           platform = 130;
           top_of_jump = false;
-      }
-    } else if (x_offset > 265 && x_offset < 295) {
-      // logic for collision with pipe at the right of the screen
-      if (top_of_jump) {
+        }
+      } else if (x_offset > 265 && x_offset < 295) {
+        // logic for collision with pipe at the right of the screen
+        if (top_of_jump) {
           platform = 155;
           top_of_jump = false;
+          on_lvl1_pipe = true;
+        }
+      } else {
+        platform = 175;
       }
-    } else {
-      platform = 175;
+
+      if (on_lvl1_pipe) {
+        if (s_clicked) {
+          level_1 = false;
+          level_2 = true;
+          y_offset = 0;
+          x_offset = 0;
+          platform = 20;
+        }
+      }
+    } else if (level_2) {
+      draw_level_2();
+      // ********* logic for PS/2 Keyboard *********
+      // Keyboard input processing. Keyboard input is read one byte at a time.
+      // Every time a read is performed of the PS/2 control register, it
+      // discards the last byte.
+      ps2_data = *(ps2_ctrl_ptr);
+      validRead = ((ps2_data & 0x8000) != 0);
+
+      if (validRead) {
+        // Update the last 3 bytes read to reflect the current read.
+        byte3 = byte2;
+        byte2 = byte1;
+        byte1 = (ps2_data & 0xFF);
+
+        if (byte1 == 0x23) {
+          // D = move to the right
+          is_running_right = true;
+          if (x_offset < 295) x_offset += player_speed;
+        } else if (byte1 == 0x1C) {
+          // A = move to the left
+          is_running_left = true;
+          if (x_offset > -15) x_offset -= player_speed;
+        } else if (byte1 == 0x1D) {
+          // W = jump
+          is_jumping = true;
+        } else if (byte1 == 0x1B) {
+          // S = go down pipe
+          s_clicked = true;
+        } else if (byte1 == 0x2C) {
+          // T = pick up power up
+          t_clicked = true;
+        }
+      } else {
+        if (is_running_right) {
+          face_right = true;
+          face_left = false;
+        } else if (is_running_left) {
+          face_left = true;
+          face_right = false;
+        }
+        is_running_right = false;
+        is_running_left = false;
+        s_clicked = false;
+        t_clicked = false;
+      }
+      // ********* end of logic for PS/2 Keyboard *********
+
+      if (is_jumping) {
+        if (up) {
+          y_offset -= 5;
+        } else {
+          y_offset += 5;
+        }
+        if (y_offset == -40) {
+          up = false;
+          top_of_jump = true;
+        } else if (y_offset == 0) {
+          up = true;
+          is_jumping = false;
+        }
+      }
+
+      // logic for picking up Iftiluigi power up
+      if (!power_up_picked_up) {
+        draw_transform_power_up();
+      }
+      if (x_offset > 120 && x_offset < 160 && y_offset < 30) {
+        if (!power_up_picked_up) {
+          draw_transform_power_up_message();
+        }
+        if (t_clicked) {
+          power_up_picked_up = true;
+          Iftiluigi = true;
+        }
+      }
+
+      // draw the character
+      if (falling_animation_of_level2) {
+        draw_iftimario_still_right(x_offset);
+        platform += 5;
+        if (platform == 150) {
+          falling_animation_of_level2 = false;
+        }
+      } else {
+        if (is_running_right) {
+          if (is_jumping) {
+            draw_iftimario_jumping_right(x_offset, y_offset);
+          } else {
+            draw_iftimario_running_right(x_offset);
+          }
+        } else if (is_running_left) {
+          if (is_jumping) {
+            draw_iftimario_jumping_left(x_offset, y_offset);
+          } else {
+            draw_iftimario_running_left(x_offset);
+          }
+        } else if (face_left) {
+          if (is_jumping) {
+            draw_iftimario_jumping_left(x_offset, y_offset);
+          } else {
+            draw_iftimario_still_left(x_offset);
+          }
+        } else if (face_right) {
+          if (is_jumping) {
+            draw_iftimario_jumping_right(x_offset, y_offset);
+          } else {
+            draw_iftimario_still_right(x_offset);
+          }
+        }
+      }
     }
 
     // waiting stage for buffer swapping
@@ -225,68 +365,168 @@ void draw_level_1() {
   }
 }
 
+void draw_level_2() {
+  for (int y = 0; y < 240; y++) {
+    for (int x = 0; x < 320; x++) {
+      int index = y * 320 + x;
+      plot_pixel(x, y, Level2[index]);
+    }
+  }
+}
+
 void draw_iftimario_still_right(int x_offest) {
-  for (int y = 0; y < 40; y++) {
-    for (int x = 0; x < 40; x++) {
-      int index = y * 40 + x;
-      if (Iftikher_still_right[index] != 0xFFFF) {
-        plot_pixel(x + x_offest, y + platform, Iftikher_still_right[index]);
+  if (Iftiluigi) {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftier_still_right[index] != 0xFFFF) {
+          plot_pixel(x + x_offest, y + platform, Iftier_still_right[index]);
+        }
+      }
+    }
+  } else {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftikher_still_right[index] != 0xFFFF) {
+          plot_pixel(x + x_offest, y + platform, Iftikher_still_right[index]);
+        }
       }
     }
   }
 }
 
 void draw_iftimario_still_left(int x_offest) {
-  for (int y = 0; y < 40; y++) {
-    for (int x = 0; x < 40; x++) {
-      int index = y * 40 + x;
-      if (Iftikher_still_left[index] != 0xFFFF) {
-        plot_pixel(x + x_offest, y + platform, Iftikher_still_left[index]);
+  if (Iftiluigi) {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftier_still_left[index] != 0xFFFF) {
+          plot_pixel(x + x_offest, y + platform, Iftier_still_left[index]);
+        }
+      }
+    }
+  } else {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftikher_still_left[index] != 0xFFFF) {
+          plot_pixel(x + x_offest, y + platform, Iftikher_still_left[index]);
+        }
       }
     }
   }
 }
 
 void draw_iftimario_running_right(x_offset) {
-  for (int y = 0; y < 40; y++) {
-    for (int x = 0; x < 40; x++) {
-      int index = y * 40 + x;
-      if (Iftikher_running_right[index] != 0xFFFF) {
-        plot_pixel(x + x_offset, y + platform, Iftikher_running_right[index]);
+  if (Iftiluigi) {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftier_run_right[index] != 0xFFFF) {
+          plot_pixel(x + x_offset, y + platform, Iftier_run_right[index]);
+        }
+      }
+    }
+  } else {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftikher_running_right[index] != 0xFFFF) {
+          plot_pixel(x + x_offset, y + platform, Iftikher_running_right[index]);
+        }
       }
     }
   }
 }
 
 void draw_iftimario_running_left(x_offset) {
-  for (int y = 0; y < 40; y++) {
-    for (int x = 0; x < 40; x++) {
-      int index = y * 40 + x;
-      if (Iftikher_running_left[index] != 0xFFFF) {
-        plot_pixel(x + x_offset, y + platform, Iftikher_running_left[index]);
+  if (Iftiluigi) {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftier_run_left[index] != 0xFFFF) {
+          plot_pixel(x + x_offset, y + platform, Iftier_run_left[index]);
+        }
+      }
+    }
+  } else {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftikher_running_left[index] != 0xFFFF) {
+          plot_pixel(x + x_offset, y + platform, Iftikher_running_left[index]);
+        }
       }
     }
   }
 }
 
 void draw_iftimario_jumping_right(x_offset, y_offset) {
-  for (int y = 0; y < 40; y++) {
-    for (int x = 0; x < 40; x++) {
-      int index = y * 40 + x;
-      if (Iftikher_jump_right[index] != 0xFFFF) {
-        plot_pixel(x + x_offset, y + platform + y_offset,
-                   Iftikher_jump_right[index]);
+  if (Iftiluigi) {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftier_jump_right[index] != 0xFFFF) {
+          plot_pixel(x + x_offset, y + platform + y_offset,
+                     Iftier_jump_right[index]);
+        }
+      }
+    }
+  } else {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftikher_jump_right[index] != 0xFFFF) {
+          plot_pixel(x + x_offset, y + platform + y_offset,
+                     Iftikher_jump_right[index]);
+        }
       }
     }
   }
 }
 
 void draw_iftimario_jumping_left(x_offset, y_offset) {
+  if (Iftiluigi) {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftier_jump_left[index] != 0xFFFF) {
+          plot_pixel(x + x_offset, y + platform + y_offset,
+                     Iftier_jump_left[index]);
+        }
+      }
+    }
+  } else {
+    for (int y = 0; y < 40; y++) {
+      for (int x = 0; x < 40; x++) {
+        int index = y * 40 + x;
+        if (Iftikher_jump_left[index] != 0xFFFF) {
+          plot_pixel(x + x_offset, y + platform + y_offset,
+                     Iftikher_jump_left[index]);
+        }
+      }
+    }
+  }
+}
+
+void draw_transform_power_up() {
   for (int y = 0; y < 40; y++) {
     for (int x = 0; x < 40; x++) {
       int index = y * 40 + x;
-      if (Iftikher_jump_left[index] != 0xFFFF) {
-        plot_pixel(x + x_offset, y + platform + y_offset, Iftikher_jump_left[index]);
+      if (transfrom_power_up[index] != 0xFFFF) {
+        plot_pixel(x + 140, y + 150, transfrom_power_up[index]);
+      }
+    }
+  }
+}
+
+void draw_transform_power_up_message() {
+  for (int y = 0; y < 40; y++) {
+    for (int x = 0; x < 70; x++) {
+      int index = y * 70 + x;
+      if (transfrom_power_up_message[index] != 0x0000) {
+        plot_pixel(x + 20, y + 10, transfrom_power_up_message[index]);
       }
     }
   }
