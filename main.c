@@ -9,11 +9,13 @@ short int Buffer1[240][512];      // 240 rows, 512 (320 + padding) columns
 short int Buffer2[240][512];
 
 int player_speed = 5;
+int platform = 175;
 bool is_running_right = false;
 bool is_running_left = false;
 bool face_left = false;
 bool face_right = true; // start facing right by default
 bool is_jumping = false;
+bool top_of_jump = false;
 
 // Define the struct for colors
 struct color {
@@ -130,7 +132,7 @@ int main(void) {
       } else if (byte1 == 0x1D) {
         // W = jump
         is_jumping = true;
-      } 
+      }
     } else {
       if (is_running_right) {
         face_right = true;
@@ -150,8 +152,9 @@ int main(void) {
       } else {
         y_offset += 5;
       }
-      if (y_offset == -20) {
+      if (y_offset == -40) {
         up = false;
+        top_of_jump = true;
       } else if (y_offset == 0) {
         up = true;
         is_jumping = false;
@@ -184,6 +187,23 @@ int main(void) {
         draw_iftimario_still_right(x_offset);
       }
     }
+
+    // logic for collision with block platferm in middle of screen
+    if (x_offset > 102 && x_offset < 162) {
+      if (top_of_jump) {
+          platform = 130;
+          top_of_jump = false;
+      }
+    } else if (x_offset > 265 && x_offset < 295) {
+      // logic for collision with pipe at the right of the screen
+      if (top_of_jump) {
+          platform = 155;
+          top_of_jump = false;
+      }
+    } else {
+      platform = 175;
+    }
+
     // waiting stage for buffer swapping
     wait_for_vsync();  // swap front and back buffers on VGA vertical sync
     pixel_buffer_start = *(pixel_ctrl_ptr + 1);  // new back buffer
@@ -210,7 +230,7 @@ void draw_iftimario_still_right(int x_offest) {
     for (int x = 0; x < 40; x++) {
       int index = y * 40 + x;
       if (Iftikher_still_right[index] != 0xFFFF) {
-        plot_pixel(x + x_offest, y + 175, Iftikher_still_right[index]);
+        plot_pixel(x + x_offest, y + platform, Iftikher_still_right[index]);
       }
     }
   }
@@ -221,7 +241,7 @@ void draw_iftimario_still_left(int x_offest) {
     for (int x = 0; x < 40; x++) {
       int index = y * 40 + x;
       if (Iftikher_still_left[index] != 0xFFFF) {
-        plot_pixel(x + x_offest, y + 175, Iftikher_still_left[index]);
+        plot_pixel(x + x_offest, y + platform, Iftikher_still_left[index]);
       }
     }
   }
@@ -232,7 +252,7 @@ void draw_iftimario_running_right(x_offset) {
     for (int x = 0; x < 40; x++) {
       int index = y * 40 + x;
       if (Iftikher_running_right[index] != 0xFFFF) {
-        plot_pixel(x + x_offset, y + 175, Iftikher_running_right[index]);
+        plot_pixel(x + x_offset, y + platform, Iftikher_running_right[index]);
       }
     }
   }
@@ -243,7 +263,7 @@ void draw_iftimario_running_left(x_offset) {
     for (int x = 0; x < 40; x++) {
       int index = y * 40 + x;
       if (Iftikher_running_left[index] != 0xFFFF) {
-        plot_pixel(x + x_offset, y + 175, Iftikher_running_left[index]);
+        plot_pixel(x + x_offset, y + platform, Iftikher_running_left[index]);
       }
     }
   }
@@ -251,10 +271,11 @@ void draw_iftimario_running_left(x_offset) {
 
 void draw_iftimario_jumping_right(x_offset, y_offset) {
   for (int y = 0; y < 40; y++) {
-  for (int x = 0; x < 40; x++) {
-    int index = y * 40 + x;
-    if (Iftikher_jump_right[index] != 0xFFFF) {
-      plot_pixel(x + x_offset, y + 175 + y_offset, Iftikher_jump_right[index]);
+    for (int x = 0; x < 40; x++) {
+      int index = y * 40 + x;
+      if (Iftikher_jump_right[index] != 0xFFFF) {
+        plot_pixel(x + x_offset, y + platform + y_offset,
+                   Iftikher_jump_right[index]);
       }
     }
   }
@@ -265,7 +286,7 @@ void draw_iftimario_jumping_left(x_offset, y_offset) {
     for (int x = 0; x < 40; x++) {
       int index = y * 40 + x;
       if (Iftikher_jump_left[index] != 0xFFFF) {
-        plot_pixel(x + x_offset, y + 175 + y_offset, Iftikher_jump_left[index]);
+        plot_pixel(x + x_offset, y + platform + y_offset, Iftikher_jump_left[index]);
       }
     }
   }
